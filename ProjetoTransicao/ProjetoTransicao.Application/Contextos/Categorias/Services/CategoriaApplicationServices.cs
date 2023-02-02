@@ -18,6 +18,37 @@ public class CategoriaApplicationServices : ICategoriaApplicationServices
         _categoriaReadRepository = categoriaReadRepository;
     }
 
+    public async Task<ICommandResult> SalvarCategoriasAsync(SalvarCategoriaDto salvarCategoriaDto)
+    {
+        Categoria novaCategoria = salvarCategoriaDto;
+
+        /*Recebe contrato
+         *se contrato invalido , retorna notificao e status code 422
+         *faz listagem de categoria
+         *se categoria existe, retorna notificacao
+         *salva categoria 
+         */
+
+        if (!novaCategoria.IsValid)
+        {
+            _notificationServices.AddNotifications(novaCategoria.Notifications, StatusCodeOperation.BusinessError);
+            return new CommandResult(novaCategoria.Notifications.ToList(), false, "Erros na operação.");
+        }
+
+        var categoriaExiste = await _categoriaReadRepository.ListarCategoriasAsync(novaCategoria.Nome);
+
+        if (categoriaExiste)
+        {
+            _notificationServices.AddNotification(new Notification("categoria", "A categoria já está cadastrada."), StatusCodeOperation.BadRequest);
+            return new CommandResult(_notificationServices.GetNotifications().ToList(), false, "Erros na operação.");
+        }
+
+        await _categoriaWriteRepository.SalvarCategoriaAsync(novaCategoria);
+
+        _notificationServices.AddStatusCode(StatusCodeOperation.Created);
+
+        return new CommandResult(novaCategoria.ToString(), true, "Categoria cadastrada com sucesso");
+    }
     public async Task<ICommandResult> AtualizarCategoriasAsync(AtualizarCategoriaDto atualizarCategoriaDto)
     {
         var categoriaExistente = await _categoriaReadRepository.ListarCategoriasAsync(atualizarCategoriaDto.Id);
@@ -106,35 +137,5 @@ public class CategoriaApplicationServices : ICategoriaApplicationServices
         return new CommandResult(categoriasDto, true, "Sucesso na chamada.");
     }
 
-    public async Task<ICommandResult> SalvarCategoriasAsync(SalvarCategoriaDto salvarCategoriaDto)
-    {
-        Categoria novaCategoria = salvarCategoriaDto;
-
-        /*Recebe contrato
-         *se contrato invalido , retorna notificao e status code 422
-         *faz listagem de categoria
-         *se categoria existe, retorna notificacao
-         *salva categoria 
-         */
-
-        if (!novaCategoria.IsValid)
-        {
-            _notificationServices.AddNotifications(novaCategoria.Notifications, StatusCodeOperation.BusinessError);
-            return new CommandResult(novaCategoria.Notifications.ToList(), false, "Erros na operação.");
-        }
-
-        var categoriaExiste = await _categoriaReadRepository.ListarCategoriasAsync(novaCategoria.Nome);
-
-        if (categoriaExiste)
-        {
-            _notificationServices.AddNotification(new Notification("categoria", "A categoria já está cadastrada."), StatusCodeOperation.BadRequest);
-            return new CommandResult(_notificationServices.GetNotifications().ToList(), false, "Erros na operação.");
-        }
-
-        await _categoriaWriteRepository.SalvarCategoriaAsync(novaCategoria);
-
-        _notificationServices.AddStatusCode(StatusCodeOperation.Created);
-
-        return new CommandResult(novaCategoria.ToString(), true, "Categoria cadastrada com sucesso");
-    }
+    
 }

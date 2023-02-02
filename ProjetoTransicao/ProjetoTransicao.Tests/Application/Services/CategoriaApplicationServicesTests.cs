@@ -115,4 +115,60 @@ public class CategoriaApplicationServicesTests
         Assert.NotNull(commandResult.Data);
         Assert.True(commandResult.Success);
     }
+
+    [Fact]
+    [Trait("CategoriaApplicationServices", "Atualizar categoria - validação de contrato")]
+    public async Task Deve_Retornar_Notificação_E_StatusCode_400_Quando_Categoria_Não_Existir()
+    {
+        //Arrange
+        var atualizarCategoriaDto = _atualizarCategoriaDtoFake.GerarEntidadeValida();
+        var statusCode = StatusCodeOperation.BadRequest;
+        
+        
+        _notificationServices.Setup(x => x.HasNotifications()).Returns(true);
+        _notificationServices.Setup(x => x.StatusCode).Returns(statusCode);
+        _categoriaReadRepository.Setup(x => x.ListarCategoriasAsync(It.IsAny<Guid>())).Returns(Task.FromResult<Categoria>(null));
+
+        //Act
+        var service = new CategoriaApplicationServices(_logServices.Object,
+                                                       _notificationServices.Object,
+                                                       _categoriaWriteRepository.Object,
+                                                       _categoriaReadRepository.Object);
+
+        var commandResult = (CommandResult)await service.AtualizarCategoriasAsync(atualizarCategoriaDto);
+
+        //Assert
+       Assert.True(_notificationServices.Object.HasNotifications());
+       Assert.Equal(statusCode, _notificationServices.Object.StatusCode);
+       Assert.False(commandResult.Success);
+    }
+
+    [Fact]
+    [Trait("CategoriaApplicationServices", "Atualizar categoria - validação de contrato")]
+    public async Task Deve_Atualizar_Categoria()
+    {
+        //Arrange
+        var atualizarCategoriaDto = _atualizarCategoriaDtoFake.GerarEntidadeValida();
+        Categoria categoriaExistente = new Categoria(nome: atualizarCategoriaDto.Nome, descricao: atualizarCategoriaDto.Descricao);
+        atualizarCategoriaDto.Id = categoriaExistente.Id;
+        var statusCode = StatusCodeOperation.NoContent;
+
+        _notificationServices.Setup(x => x.HasNotifications()).Returns(false);
+        _notificationServices.Setup(x => x.StatusCode).Returns(statusCode);
+        _categoriaReadRepository.Setup(x => x.ListarCategoriasAsync(categoriaExistente.Id)).ReturnsAsync(categoriaExistente);
+        
+        //Act
+        var service = new CategoriaApplicationServices(_logServices.Object,
+                                                       _notificationServices.Object,
+                                                       _categoriaWriteRepository.Object,
+                                                       _categoriaReadRepository.Object);
+
+        var commandResult = (CommandResult)await service.AtualizarCategoriasAsync(atualizarCategoriaDto);
+
+        //Assert
+        Assert.False(_notificationServices.Object.HasNotifications());
+        Assert.Equal(statusCode, _notificationServices.Object.StatusCode);
+        Assert.True(commandResult.Success);
+    }
+
 }

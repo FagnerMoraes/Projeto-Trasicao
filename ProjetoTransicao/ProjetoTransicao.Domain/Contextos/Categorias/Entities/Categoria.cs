@@ -15,6 +15,7 @@ public class Categoria : BaseEntity, IEntity
         ValidarEntidade();
         PrepararDados();
     }
+
     public Categoria AlterarNome(string nome)
     {
         Nome = nome;
